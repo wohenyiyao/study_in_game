@@ -3,9 +3,13 @@
     <div class="bar">
       <el-page-header content="题目管理" />
       <div class="right">
-        <el-select v-model="levelId" placeholder="选择关卡" @change="load">
+        <el-select v-model="levelId" placeholder="选择关卡（共 {{ levels.length }} 个）" clearable
+                   filterable style="width: 300px" @change="load">
           <el-option v-for="lv in levels" :key="lv.id" :value="lv.id"
-                     :label="`${lv.chapter_title} / ${lv.title}`" />
+                     :label="`${lv.chapter_title} · ${lv.title}`">
+            <span class="lv-label">{{ lv.chapter_title }} · {{ lv.title }}</span>
+            <span class="lv-count">{{ lv.question_count }} 题</span>
+          </el-option>
         </el-select>
         <el-button type="primary" :disabled="!levelId" @click="openDialog()">新增题目</el-button>
       </div>
@@ -69,7 +73,11 @@ function emptyForm() {
 async function loadLevels() {
   const [lv, ch] = await Promise.all([http.get('/admin/levels'), http.get('/admin/chapters')])
   const chMap = Object.fromEntries(ch.map((c) => [c.id, c]))
-  levels.value = lv.map((l) => ({ ...l, chapter_title: chMap[l.chapter_id]?.title || '?' }))
+  levels.value = lv.map((l) => ({
+    ...l,
+    chapter_title: chMap[l.chapter_id]?.title || '未命名章节',
+    subject_name: chMap[l.chapter_id]?.subject_name || ''
+  }))
 }
 async function load() {
   if (!levelId.value) return
@@ -105,7 +113,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.right { display: flex; gap: 10px; }
+.bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+.right { display: flex; gap: 10px; align-items: center; }
+.lv-label { flex: 1; }
+.lv-count { color: #9aa0c4; font-size: 12px; margin-left: auto; padding-left: 12px; }
 .opt-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
 </style>
