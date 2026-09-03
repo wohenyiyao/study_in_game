@@ -1,0 +1,90 @@
+/* ============================================================
+   learn-quest 全局主题（明亮游戏风）
+   覆盖 Element Plus 主色为靛紫，并注入通用工具类/滚动条等
+   ============================================================ */
+:root {
+  --lq-indigo: #6366f1;
+  --lq-violet: #8b5cf6;
+  --lq-cyan: #22d3ee;
+  --lq-gold: #fbbf24;
+  --lq-ink: #23253f;
+  --lq-sub: #6b7280;
+  --lq-grad: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --lq-grad-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+
+  /* Element Plus 主色 → 靛紫（按 Tailwind indigo 等比提供明暗档） */
+  --el-color-primary: #6366f1;
+  --el-color-primary-light-3: #818cf8;
+  --el-color-primary-light-5: #a5b4fc;
+  --el-color-primary-light-7: #c7d2fe;
+  --el-color-primary-light-8: #dbe3ff;
+  --el-color-primary-light-9: #eef2ff;
+  --el-color-primary-dark-2: #4f46e5;
+
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-border-radius-round: 999px;
+  --el-font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui,
+    -apple-system, Roboto, sans-serif;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--el-font-family);
+  color: var(--lq-ink);
+  background:
+    radial-gradient(1100px 620px at 88% -12%, rgba(139, 92, 246, 0.12), transparent 60%),
+    radial-gradient(900px 520px at -8% 108%, rgba(34, 211, 238, 0.1), transparent 55%),
+    #f1f3fc;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- 主按钮：渐变底 + 悬浮微动效 ---------- */
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):not(.is-disabled) {
+  background-image: var(--lq-grad);
+  border: none;
+  box-shadow: 0 8px 18px -8px rgba(99, 102, 241, 0.55);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):not(.is-disabled):hover,
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):not(.is-disabled):focus {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+  box-shadow: 0 11px 24px -8px rgba(99, 102, 241, 0.7);
+}
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text).is-disabled {
+  background-image: none;
+  background-color: #c4c7f0;
+  color: #f7f8ff;
+}
+
+/* ---------- 渐变文字工具类 ---------- */
+.lq-grad-text {
+  background-image: linear-gradient(100deg, #6366f1, #8b5cf6 55%, #6366f1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- 细滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c7cbe6;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a5abdd;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
