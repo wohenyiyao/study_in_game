@@ -5,7 +5,7 @@
       <div class="brand">
         <span class="brand-logo">🐍</span>
         <div class="brand-text">
-          <span class="brand-name lq-grad-text">Python 闯关学</span>
+          <span class="brand-name lq-grad-text">闯关学</span>
           <span class="brand-sub">L E A R N · Q U E S T</span>
         </div>
       </div>
@@ -24,6 +24,9 @@
 
         <template v-if="store.isAdmin">
           <div class="menu-caption admin-caption">内容管理</div>
+          <el-menu-item index="/admin/subjects">
+            <el-icon><Menu /></el-icon><span>科目管理</span>
+          </el-menu-item>
           <el-menu-item index="/admin/chapters">
             <el-icon><FolderOpened /></el-icon><span>章节管理</span>
           </el-menu-item>

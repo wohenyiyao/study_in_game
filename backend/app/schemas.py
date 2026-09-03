@@ -38,8 +38,29 @@ class LoginOut(BaseModel):
     user: UserOut
 
 
+# ---- 科目（顶层学习单位）----
+class SubjectIn(BaseModel):
+    name: str
+    code: str
+    icon: str = "🎮"
+    description: str = ""
+    order: int = 0
+
+
+class SubjectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    code: str
+    icon: str = "🎮"
+    description: str = ""
+    order: int
+    chapter_count: int = 0
+
+
 # ---- 章节 / 关卡 / 题目（管理端 CRUD）----
 class ChapterIn(BaseModel):
+    subject_id: int
     title: str
     description: str = ""
     order: int = 0
@@ -48,9 +69,11 @@ class ChapterIn(BaseModel):
 class ChapterOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    subject_id: int
     title: str
     description: str
     order: int
+    subject_name: str = ""
     level_count: int = 0
 
 
@@ -114,6 +137,17 @@ class ChapterMap(BaseModel):
     description: str
     order: int
     levels: List[LevelMap]
+
+
+class SubjectMap(BaseModel):
+    """地图顶层：一个科目（如 Python），含其章节与（科目内独立的）关卡链。"""
+    id: int
+    name: str
+    code: str
+    icon: str = "🎮"
+    description: str = ""
+    order: int
+    chapters: List[ChapterMap]
 
 
 class QuestionBrief(BaseModel):

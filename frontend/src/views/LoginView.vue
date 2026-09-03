@@ -6,8 +6,8 @@
         <div class="side-logo">
           <span class="logo-emoji">🐍</span>
         </div>
-        <h1 class="side-title">Python 闯关学</h1>
-        <p class="side-slogan">像打游戏一样，把 Python 一关一关刷通关</p>
+        <h1 class="side-title">闯关学</h1>
+        <p class="side-slogan">像打游戏一样，把知识一关一关刷通关</p>
 
         <ul class="side-points">
           <li><span class="pt-ico">🗺️</span><div><b>闯关式学习地图</b><small>链式解锁，越学越上瘾</small></div></li>
@@ -83,7 +83,7 @@
           </el-tab-pane>
         </el-tabs>
       </el-card>
-      <p class="auth-foot">© {{ new Date().getFullYear() }} Python 闯关学 · 边玩边学 Python</p>
+      <p class="auth-foot">© {{ new Date().getFullYear() }} 闯关学 · Python / Java / 面试题库都在这闯</p>
     </div>
   </div>
 </template>

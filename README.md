@@ -1,6 +1,8 @@
-# Python 闯关学（learn-quest）
+# 闯关学（learn-quest）
 
-游戏式 Python 学习闯关网站：注册（QQ 邮箱验证码）→ 学习地图 → 按关卡顺序答题闯关（≥60% 通关、按正确率得 1-3 星）→ 错题自动入错题本；管理员可在线维护章节/关卡/题目。内置「AI 助教」Agent 开发位（当前为占位回复，由你接入 LangGraph）。
+游戏式**编程学习闯关网站**（多科目：当前内置 Python，可按需扩展 Java / 面试题库等科目）：
+注册（QQ 邮箱验证码）→ 选择科目学习地图 → 按科目内关卡顺序答题闯关（≥60% 通关、按正确率得 1-3 星）→
+错题自动入错题本；管理员可在线维护科目/章节/关卡/题目。内置「AI 助教」Agent 开发位（当前为占位回复，由你接入 LangGraph）。
 
 ## 技术栈
 
@@ -15,17 +17,17 @@ learn-quest/
 ├── backend/            FastAPI 后端
 │   ├── app/
 │   │   ├── main.py         入口（建库建表 + 路由 + CORS）
-│   │   ├── models.py       ORM（用户/章节/关卡/题目/进度/错题）
+│   │   ├── models.py       ORM（科目/用户/章节/关卡/题目/进度/错题）
 │   │   ├── schemas.py      Pydantic 模型
 │   │   ├── auth.py         PBKDF2 密码 + HMAC 令牌
 │   │   ├── emailer.py      QQ 邮箱 SMTP 发验证码
 │   │   ├── redis_client.py 验证码 Redis 存储
 │   │   ├── routers/        auth / game / admin / assistant
 │   │   ├── agent/          🤖 Agent 开发位（tutor.py，等你实现）
-│   │   └── seed.py         种子数据（管理员 + 2章4关20题）
-│   ├── tests/             pytest 单测（12 条，全绿）
+│   │   └── seed.py         种子数据（科目 python：管理员 + 2章4关20题）
+│   ├── tests/             pytest 单测（14 条，全绿）
 │   └── run.py
-├── frontend/           Vue3 前端（登录/地图/答题/错题本/战绩/管理后台）
+├── frontend/           Vue3 前端（登录/科目地图/答题/错题本/战绩/管理后台）
 └── AGENT_TODO.md       你的 Agent 练习任务书
 ```
 
@@ -35,6 +37,9 @@ learn-quest/
 验证码邮件：仓库**不内置 SMTP 凭据**——本地联调设环境变量 `LQ_DEV_ECHO_CODE=1`
 （send-code 直接回显验证码、不真发信），或复制 `backend/.env.example` 为 `.env`
 填入自己的 QQ 邮箱 + SMTP 授权码。
+
+> ⚠️ 升级过「科目」结构的旧库需重建：`DROP DATABASE learn_quest` 后重新
+> `python -m app.seed`（见下），否则会因缺 `subjects` 表而启动报错。
 
 ```bash
 # 后端

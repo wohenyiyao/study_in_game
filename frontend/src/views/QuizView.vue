@@ -103,7 +103,7 @@ async function submit() {
 function resetQuiz() { result.value = null; answers.value = questions.value.map(() => null) }
 async function nextLevel() {
   const map = await http.get('/map')
-  const all = map.flatMap((c) => c.levels)
+  const all = map.flatMap((s) => s.chapters.flatMap((c) => c.levels))
   const idx = all.findIndex((l) => l.id === levelId)
   const next = all[idx + 1]
   if (next) router.push(`/level/${next.id}`)

@@ -8,17 +8,18 @@
 
 ## 1. 项目概述
 
-游戏式 **Python 学习闯关网站**，完整业务闭环：
+游戏式**编程学习闯关网站**（**多科目**：当前内置 Python，可扩展 Java / 面试题库等科目），完整业务闭环：
 
 1. 用户用 **QQ 邮箱 + 邮件验证码注册**，邮箱 + 密码登录（JWT 令牌）。
-2. 进入「学习地图」，按 **章节 → 关卡 → 题目** 顺序闯关（**全局链式解锁**：通上一关才能开下一关，跨章节延续）。
+2. 进入「学习地图」（按**科目**切换），科目内按 **章节 → 关卡 → 题目** 顺序闯关（**科目内链式解锁**：本科目通上一关才能开下一关、跨章节延续；**科目之间互不影响**，各有独立进度线）。
 3. 交卷后端**确定性判分**（AI 不参与判分）：正确率 ≥ 关卡 `pass_ratio`（默认 0.6）即通关，按正确率得 **1–3 星**（≥90% → 3 星，≥75% → 2 星，其余通关 1 星）。
 4. 答错的题**自动进错题本**；答对则该题从错题本清除。
-5. 管理员可在后台在线维护 **章节 / 关卡 / 题目 / 用户**（CRUD，含级联删除与玩家数据清理）。
+5. 管理员可在后台在线维护 **科目 / 章节 / 关卡 / 题目 / 用户**（CRUD，含级联删除与玩家数据清理）。
 6. 「我的战绩」页展示统计。
 7. 答题页右下角 🤖 **AI 助教**抽屉 → `POST /api/assistant/chat` → 目前后端是**占位实现**（`agent_ready=False`），这是留给 Agent 用 LangGraph 接成真 Agent 的**开发位**（见 §10 与根目录 `AGENT_TODO.md`）。
 
-仓库当前**不是 git 仓库**；本地已装好 `backend/.venv`（Python 3.12.10）与 `frontend/node_modules`。
+仓库已接入 git 并推送至 GitHub：https://github.com/wohenyiyao/study_in_game（分支 main）。
+本地已装好 `backend/.venv`（Python 3.12.10）与 `frontend/node_modules`。
 
 ## 2. 技术栈
 
@@ -47,16 +48,16 @@ learn-quest/
 │   ├── app/
 │   │   ├── main.py              FastAPI 入口：ensure_database + create_all + CORS(*, 开发用) + 挂 4 个 router + /api/health
 │   │   ├── database.py          ★ MySQL 引擎与会话（env: LQ_DB_*），ensure_database() 自动建库；get_db() 依赖
-│   │   ├── models.py            ★ ORM 模型：User/Chapter/Level/Question/Progress/WrongRecord（见 §4）
+│   │   ├── models.py            ★ ORM 模型：Subject/User/Chapter/Level/Question/Progress/WrongRecord（见 §4）
 │   │   ├── schemas.py           ★ Pydantic v2 请求/响应模型（from_attributes=True），前后端接口契约的"真源"
 │   │   ├── auth.py              ★ PBKDF2 哈希 + HMAC JWT（env: LQ_SECRET，7 天过期）；get_current_user / require_admin 依赖
 │   │   ├── emailer.py           QQ 邮箱 SMTP_SSL 发验证码（env: LQ_MAIL_*）
 │   │   ├── redis_client.py      Redis 客户端（env: LQ_REDIS_URL），默认 127.0.0.1:6379/0
-│   │   ├── seed.py              种子数据：管理员 + 2 章 4 关 20 题（SEED 常量）；python -m app.seed 可跑
+│   │   ├── seed.py              种子数据：科目 python（管理员 + 2 章 4 关 20 题）；python -m app.seed 可跑
 │   │   ├── routers/
 │   │   │   ├── auth_r.py        /api/auth/*：send-code / register / login / me（验证码存 Redis，60s 限流）
-│   │   │   ├── game_r.py        /api/map、/api/levels/{id}/start|submit、/api/stats、/api/wrongbook（判分逻辑全在这里）
-│   │   │   ├── admin_r.py       /api/admin/*：章节/关卡/题目/用户 CRUD（router 级 require_admin）
+│   │   │   ├── game_r.py        /api/map（科目地图）、/api/levels/{id}/start|submit、/api/stats、/api/wrongbook（判分逻辑全在这里）
+│   │   │   ├── admin_r.py       /api/admin/*：科目/章节/关卡/题目/用户 CRUD（router 级 require_admin）
 │   │   │   └── assistant_r.py   /api/assistant/chat → 转发给 agent/tutor.py
 │   │   └── agent/
 │   │       └── tutor.py         ★ AI 助教开发位（当前占位，collect_context 已有雏形）
@@ -64,7 +65,7 @@ learn-quest/
 │   │   ├── conftest.py          env 注入（learn_quest_test 库 + 验证码回显）、fixtures、helpers
 │   │   ├── helpers.py           register_user / admin_headers
 │   │   ├── test_auth.py         6 条：注册链路/错误码/一次性码/重复邮箱/登录/限流
-│   │   ├── test_game_admin.py   4 条：链式解锁/判分错题本/统计/管理 CRUD 与级联删除
+│   │   ├── test_game_admin.py   6 条：科目地图/科目独立链式解锁/判分错题本/统计/管理 CRUD 与级联删除
 │   │   └── test_agent.py        2 条：占位助教断言 + 未登录 401（Agent 落地后需改成真实断言）
 │   └── .venv/                   ★ 本地虚拟环境（Python 3.12.10），运行/测试请用它
 └── frontend/                    Vue3 前端
@@ -79,19 +80,20 @@ learn-quest/
         └── views/
             ├── LoginView.vue    登录/注册（含发验证码按钮）
             ├── Layout.vue       侧边导航（地图/战绩/错题本 + admin 内容管理）
-            ├── MapView.vue      学习地图（GET /map）
+            ├── MapView.vue      科目学习地图（GET /map 按科目返回）
             ├── QuizView.vue     ★ 答题 + 交卷结果讲解 + 🤖 AI 助教抽屉（POST /assistant/chat，附 level_id）
             ├── WrongbookView.vue  错题本（列表/删除）
             ├── StatsView.vue    我的战绩
-            └── admin/           AdminChapters / AdminLevels / AdminQuestions / AdminUsers
+            └── admin/           AdminSubjects / AdminChapters / AdminLevels / AdminQuestions / AdminUsers
 ```
 
 ## 4. 数据模型（`backend/app/models.py`）
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
+| `subjects` | **name**(唯一), **code**(唯一，如 python/java), icon(emoji), description, order | 顶层科目；每个科目有**独立**的链式解锁进度 |
 | `users` | email(唯一), password_hash, role(`user`\|`admin`) | 密码为 PBKDF2 哈希 |
-| `chapters` | title, description, order | 一级导航（学什么主题） |
+| `chapters` | **subject_id**(FK→subjects), title, description, order | 章节挂在科目下 |
 | `levels` | chapter_id, title, description, order, **pass_ratio**(默认 0.6) | 每章多个关卡；ORM 级联删除题目 |
 | `questions` | level_id, content, **options(JSON 数组)**, **answer_index**, explanation, order | 单选；explanation 是标准解析（Agent 讲解的素材） |
 | `progress` | (user_id, level_id) 唯一, cleared, attempts, best_accuracy, **stars**, cleared_at, updated_at | 每人每关一条进度；保留历史最佳 |
@@ -99,9 +101,12 @@ learn-quest/
 
 **判分/星级规则（game_r.py）**：`correct/total` ≥ `pass_ratio` 通关；星级 `≥0.9→3`、`≥0.75→2`、否则通关 `1`。答错写 `wrong_records`，答对删除同题历史错题。`progress.stars/best_accuracy` 只保留历史最大值，`cleared` 反映最近一次交卷。
 
-**解锁规则（关键业务逻辑）**：全关卡按 (章节 order, 关卡 order) 全局排序后**链式解锁**——第 1 关恒解锁，第 N 关需第 N-1 关 `cleared=1`（跨章节延续）。同一逻辑在 `/map` 与 `/levels/{id}/start`(403) 中各有一份实现，改动需同步（现有测试 `test_unlock_chain_across_chapters` 覆盖此点回归）。
+**解锁规则（关键业务逻辑）**：**按科目**取 (章节 order, 关卡 order) 排序后**科目内链式解锁**——
+每个科目的第 1 关恒解锁，第 N 关需本科目第 N-1 关 `cleared=1`（跨章节延续、**跨科目互不影响**）。
+同一逻辑在 `/map` 与 `/levels/{id}/start`(403) 中各有一份实现，改动需同步
+（测试 `test_unlock_chain_across_chapters`、`test_subjects_independent_chains` 覆盖回归）。
 
-**管理端删除的注意事项（admin_r.py）**：MySQL 无 ORM 级联，删除题目/关卡/章节前**手动清掉引用它们的 progress / wrong_records**（测试已回归）。
+**管理端删除的注意事项（admin_r.py）**：MySQL 无 ORM 级联，删除题目/关卡/章节前**手动清掉引用它们的 progress / wrong_records**（测试已回归）；**科目**若仍有章节则后端拒绝删除（须先删净其下章节）。
 
 ## 5. API 一览（统一前缀 /api，除登录外均需 `Authorization: Bearer <token>`）
 
@@ -112,12 +117,13 @@ learn-quest/
 | `POST /auth/register` | `{email,password,code}` → `{token,user}`（验证码一次性） |
 | `POST /auth/login` | `{email,password}` → `{token,user}` |
 | `GET /auth/me` | 当前用户 |
-| `GET /map` | 章节树（每关含 unlocked/cleared/stars/best_accuracy） |
+| `GET /map` | 科目地图（每个科目含章节树；关卡含 unlocked/cleared/stars/best_accuracy，科目内链式解锁） |
 | `GET /levels/{id}/start` | 返回题目（**不含答案**，只含 id/content/options）；未解锁 403 |
 | `POST /levels/{id}/submit` | `{answers:[int]}` → 判分结果 + 每题 details（含解析），维护进度与错题本 |
 | `GET /stats` | 关卡数/通关数/星数/题目数/错题数 |
 | `GET /wrongbook` | 错题列表（含答案与解析）；`DELETE /wrongbook/{question_id}` 移除 |
-| `GET|POST|PUT|DELETE /admin/chapters[/{id}]` | 章节 CRUD（需 admin） |
+| `GET|POST|PUT|DELETE /admin/subjects[/{id}]` | 科目 CRUD（GET 带 chapter_count；code 唯一；有章节的科目拒删） |
+| `GET|POST|PUT|DELETE /admin/chapters[/{id}]` | 章节 CRUD（GET 支持 `?subject_id=`；需带 subject_id） |
 | `GET|POST|PUT|DELETE /admin/levels[/{id}]` | 关卡 CRUD（GET 支持 `?chapter_id=`） |
 | `GET|POST|PUT|DELETE /admin/questions[/{id}]` | 题目 CRUD（GET 需 `?level_id=`） |
 | `GET /admin/users` | 用户列表 |
@@ -162,7 +168,7 @@ npm run dev                          # http://127.0.0.1:5173 （/api 代理到 8
 ```bash
 # 测试：需 MySQL + Redis 在跑；使用独立库 learn_quest_test（不污染开发数据）
 cd backend
-.\.venv\Scripts\python -m pytest tests -v    # 12 条；Redis 未启动则整组跳过
+.\.venv\Scripts\python -m pytest tests -v    # 14 条；Redis 未启动则整组跳过
 ```
 
 测试基础设施要点（`tests/conftest.py`）：在 import app **之前**设好 `LQ_DB_NAME=learn_quest_test`、`LQ_DEV_ECHO_CODE=1`；session 级建表 + seed；每条用例清动态数据、保留种子内容；发信替换为 lambda 假实现。新增用例请沿用 fixtures 与 helpers，不要发真实邮件、不要动开发库。
@@ -189,6 +195,7 @@ cd backend
 
 - `learn_quest.db`（backend 根）是 **SQLite 残留文件，代码无任何引用**，别用它判断库结构，也别把它当目标库。
 - 真正的库是 **MySQL**（`learn_quest_test` 是测试库）；Redis 挂了 → send-code 503、pytest 整组跳过。
+- 升级过「科目」结构后，旧开发库 `learn_quest` 缺 `subjects` 表：先 `DROP DATABASE learn_quest` 再 `python -m app.seed` 重建（种子只含 python 科目）。
 - 忘记 `.venv` 直接用系统 python 可能导致缺依赖或版本不符——统一用 `backend/.venv/Scripts/python`。
 - 改动解锁/星级/删除逻辑后务必跑 `tests/test_game_admin.py`（多处分摊实现，易回归）。
 - 无 git 仓库：需要版本管理时先 `git init` 并排除 `.venv/ node_modules/ *.db __pycache__/ .pytest_cache/ .env`。

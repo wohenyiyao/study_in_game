@@ -53,10 +53,17 @@ def db(db_session_factory):
     from app.redis_client import client as redis
 
     session = SessionLocal()
-    # 清掉上一用例的动态数据（保留 admin）
+    # 清掉上一用例的动态数据（保留 admin 与种子科目 python）
     session.query(WrongRecord).delete()
     session.query(Progress).delete()
     session.query(User).filter(User.role != "admin").delete()
+    # 清理用例中新建的科目（含其章节/关卡/题目，ORM 级联），避免跨用例残留
+    from app.models import Subject, Chapter
+    extra = session.query(Subject).filter(Subject.code != "python").all()
+    for s in extra:
+        for ch in list(s.chapters):
+            session.delete(ch)
+        session.delete(s)
     session.commit()
     session.close()
 

@@ -8,7 +8,7 @@ from .routers import auth_r, game_r, admin_r, assistant_r
 ensure_database()
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Python 闯关学", version="1.0.0")
+app = FastAPI(title="闯关学（learn-quest）", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,

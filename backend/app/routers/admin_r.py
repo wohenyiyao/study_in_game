@@ -1,23 +1,77 @@
-"""管理路由（role=admin）：章节 / 关卡 / 题目 / 用户 CRUD。"""
+"""管理路由（role=admin）：科目 / 章节 / 关卡 / 题目 / 用户 CRUD。"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import User, Chapter, Level, Question, Progress, WrongRecord
-from ..schemas import (ChapterIn, ChapterOut, LevelIn, LevelOut, QuestionIn,
-                       QuestionOut, UserOut, Msg)
+from ..models import User, Subject, Chapter, Level, Question, Progress, WrongRecord
+from ..schemas import (SubjectIn, SubjectOut, ChapterIn, ChapterOut,
+                       LevelIn, LevelOut, QuestionIn, QuestionOut, UserOut, Msg)
 from ..auth import require_admin
 
 router = APIRouter(prefix="/api/admin", tags=["admin"],
                    dependencies=[Depends(require_admin)])
 
 
+# ---------------- 科目 ----------------
+@router.get("/subjects", response_model=list[SubjectOut])
+def list_subjects(db: Session = Depends(get_db)):
+    out = []
+    for s in db.query(Subject).order_by(Subject.order, Subject.id).all():
+        item = SubjectOut.model_validate(s)
+        item.chapter_count = len(s.chapters)
+        out.append(item)
+    return out
+
+
+@router.post("/subjects", response_model=SubjectOut)
+def create_subject(body: SubjectIn, db: Session = Depends(get_db)):
+    if db.query(Subject).filter(Subject.code == body.code).first():
+        raise HTTPException(400, "科目编码已存在（code 需唯一，如 python / java）")
+    s = Subject(**body.model_dump())
+    db.add(s)
+    db.commit()
+    db.refresh(s)
+    return SubjectOut.model_validate(s)
+
+
+@router.put("/subjects/{subject_id}", response_model=SubjectOut)
+def update_subject(subject_id: int, body: SubjectIn, db: Session = Depends(get_db)):
+    s = db.get(Subject, subject_id)
+    if s is None:
+        raise HTTPException(404, "科目不存在")
+    dup = db.query(Subject).filter(Subject.code == body.code,
+                                   Subject.id != subject_id).first()
+    if dup:
+        raise HTTPException(400, "科目编码已存在（code 需唯一，如 python / java）")
+    for k, v in body.model_dump().items():
+        setattr(s, k, v)
+    db.commit()
+    db.refresh(s)
+    return SubjectOut.model_validate(s)
+
+
+@router.delete("/subjects/{subject_id}", response_model=Msg)
+def delete_subject(subject_id: int, db: Session = Depends(get_db)):
+    s = db.get(Subject, subject_id)
+    if s is None:
+        raise HTTPException(404, "科目不存在")
+    if s.chapters:
+        raise HTTPException(400, "该科目下还有章节，请先删除其下的全部章节")
+    db.delete(s)
+    db.commit()
+    return Msg(msg="ok")
+
+
 # ---------------- 章节 ----------------
 @router.get("/chapters", response_model=list[ChapterOut])
-def list_chapters(db: Session = Depends(get_db)):
+def list_chapters(subject_id: int | None = None, db: Session = Depends(get_db)):
+    q = db.query(Chapter)
+    if subject_id is not None:
+        q = q.filter(Chapter.subject_id == subject_id)
     out = []
-    for ch in db.query(Chapter).order_by(Chapter.order).all():
+    for ch in q.order_by(Chapter.subject_id, Chapter.order).all():
         item = ChapterOut.model_validate(ch)
+        item.subject_name = ch.subject.name if ch.subject else ""
         item.level_count = len(ch.levels)
         out.append(item)
     return out
@@ -25,11 +79,15 @@ def list_chapters(db: Session = Depends(get_db)):
 
 @router.post("/chapters", response_model=ChapterOut)
 def create_chapter(body: ChapterIn, db: Session = Depends(get_db)):
+    if db.get(Subject, body.subject_id) is None:
+        raise HTTPException(404, "科目不存在")
     ch = Chapter(**body.model_dump())
     db.add(ch)
     db.commit()
     db.refresh(ch)
-    return ChapterOut.model_validate(ch)
+    item = ChapterOut.model_validate(ch)
+    item.subject_name = ch.subject.name if ch.subject else ""
+    return item
 
 
 @router.put("/chapters/{chapter_id}", response_model=ChapterOut)
@@ -37,11 +95,15 @@ def update_chapter(chapter_id: int, body: ChapterIn, db: Session = Depends(get_d
     ch = db.get(Chapter, chapter_id)
     if ch is None:
         raise HTTPException(404, "章节不存在")
+    if db.get(Subject, body.subject_id) is None:
+        raise HTTPException(404, "科目不存在")
     for k, v in body.model_dump().items():
         setattr(ch, k, v)
     db.commit()
     db.refresh(ch)
-    return ChapterOut.model_validate(ch)
+    item = ChapterOut.model_validate(ch)
+    item.subject_name = ch.subject.name if ch.subject else ""
+    return item
 
 
 @router.delete("/chapters/{chapter_id}", response_model=Msg)

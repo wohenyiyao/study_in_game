@@ -13,6 +13,9 @@
     <el-card class="map-progress" shadow="never">
       <template #header>关卡进度</template>
       <el-table :data="rows">
+        <el-table-column label="科目" width="150">
+          <template #default="{ row }">{{ row.subject }}</template>
+        </el-table-column>
         <el-table-column label="章节" prop="chapter" width="160" />
         <el-table-column label="关卡" prop="level" />
         <el-table-column label="状态" width="110">
@@ -59,12 +62,15 @@ const cards = computed(() => [
 ])
 
 const rows = computed(() =>
-  map.value.flatMap((ch) =>
-    ch.levels.map((lv) => ({
-      ...lv,
-      chapter: `第 ${ch.order + 1} 章 ${ch.title}`,
-      level: `关卡 ${lv.order + 1} ${lv.title}`
-    }))
+  map.value.flatMap((s) =>
+    s.chapters.flatMap((ch) =>
+      ch.levels.map((lv) => ({
+        ...lv,
+        subject: `${s.icon} ${s.name}`,
+        chapter: `第 ${ch.order + 1} 章 ${ch.title}`,
+        level: `关卡 ${lv.order + 1} ${lv.title}`
+      }))
+    )
   )
 )
 

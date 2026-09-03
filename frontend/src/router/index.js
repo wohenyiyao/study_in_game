@@ -12,6 +12,7 @@ const routes = [
       { path: 'level/:id', name: 'quiz', component: () => import('../views/QuizView.vue') },
       { path: 'wrongbook', name: 'wrongbook', component: () => import('../views/WrongbookView.vue') },
       { path: 'stats', name: 'stats', component: () => import('../views/StatsView.vue') },
+      { path: 'admin/subjects', name: 'admin-subjects', component: () => import('../views/admin/AdminSubjects.vue'), meta: { admin: true } },
       { path: 'admin/chapters', name: 'admin-chapters', component: () => import('../views/admin/AdminChapters.vue'), meta: { admin: true } },
       { path: 'admin/levels', name: 'admin-levels', component: () => import('../views/admin/AdminLevels.vue'), meta: { admin: true } },
       { path: 'admin/questions', name: 'admin-questions', component: () => import('../views/admin/AdminQuestions.vue'), meta: { admin: true } },

@@ -26,7 +26,7 @@ def send_code_email(to_email: str, code: str) -> None:
         raise RuntimeError(
             "未配置发信邮箱：请在环境变量设置 LQ_MAIL_USER / LQ_MAIL_CODE"
             "（QQ 邮箱 SMTP 授权码），参考 backend/.env.example")
-    subject = "【Python 闯关学】邮箱验证码"
+    subject = "【闯关学】邮箱验证码"
     body = (f"你的注册验证码是：{code}\n"
             f"10 分钟内有效，请勿泄露给他人。\n\n"
             f"（若你未在本站注册，请忽略此邮件）")

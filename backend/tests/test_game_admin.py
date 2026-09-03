@@ -1,4 +1,4 @@
-"""闯关链路单测：解锁链 / 判分 / 错题本 / 管理端 CRUD 与级联删除。"""
+"""闯关链路单测：科目地图 / 科目内链式解锁 / 判分 / 错题本 / 管理端 CRUD 与级联删除。"""
 from tests.helpers import register_user, admin_headers
 
 
@@ -16,19 +16,26 @@ def _wrong_answers_for(db, level_id: int) -> list[int]:
 
 
 def _map_levels(client, h):
+    """科目地图 → 拍平所有科目的全部关卡。"""
     map_ = client.get("/api/map", headers=h).json()
-    return [lv for ch in map_ for lv in ch["levels"]]
+    return [lv for s in map_ for ch in s["chapters"] for lv in ch["levels"]]
+
+
+def _seed_python_subject_id(client, h) -> int:
+    """取种子科目（python）的 id。"""
+    subs = client.get("/api/admin/subjects", headers=h).json()
+    return next(s["id"] for s in subs if s["code"] == "python")
 
 
 def test_unlock_chain_across_chapters(client, db):
-    """全局链式解锁：第 2 章第 1 关初始锁定，通关第 1 章第 2 关后解锁。"""
+    """科目内全局链式解锁：第 2 章第 1 关初始锁定，通关第 1 章第 2 关后解锁。"""
     h = register_user(client, "g1@qq.com")
     levels = _map_levels(client, h)
     assert len(levels) >= 4
     l1, l2, l3 = levels[0], levels[1], levels[2]
     assert l1["unlocked"] and not l1["cleared"]
     assert not l2["unlocked"]
-    assert not l3["unlocked"], "第 2 章第 1 关不应提前解锁（Review 修复点回归）"
+    assert not l3["unlocked"], "同一科目内，第 2 章第 1 关不应提前解锁"
 
     # 未解锁进入 → 403
     assert client.get(f"/api/levels/{l2['id']}/start", headers=h).status_code == 403
@@ -39,13 +46,79 @@ def test_unlock_chain_across_chapters(client, db):
     j = r.json()
     assert j["passed"] and j["stars"] == 3
 
-    # 通关 l2（仍全局锁定的下一关）
+    # 通关 l2
     answers = _answers_for(db, l2["id"])
     assert client.post(f"/api/levels/{l2['id']}/submit",
                        json={"answers": answers}, headers=h).json()["passed"]
     # l3 应已解锁
     levels = _map_levels(client, h)
     assert levels[2]["unlocked"]
+
+
+def test_subjects_independent_chains(client, db):
+    """不同科目的第 1 关互不锁定：建一个空关卡的新科目，其关卡可直接挑战。"""
+    h = admin_headers(client)
+    resp = client.post("/api/admin/subjects",
+                       json={"name": "Java 测试", "code": "java", "icon": "☕", "order": 9},
+                       headers=h)
+    assert resp.status_code == 200, resp.text
+    s = resp.json()
+    ch = client.post("/api/admin/chapters",
+                     json={"subject_id": s["id"], "title": "Java 第 1 章", "order": 0},
+                     headers=h).json()
+    lv = client.post("/api/admin/levels",
+                     json={"chapter_id": ch["id"], "title": "Java L1", "order": 0},
+                     headers=h).json()
+    q = client.post("/api/admin/questions",
+                    json={"level_id": lv["id"], "content": "1+1?", "options": ["2", "3"],
+                          "answer_index": 0, "explanation": "x"}, headers=h).json()
+
+    # 普通用户：python 未通关，但 java 科目的关卡应直接解锁可玩
+    uh = register_user(client, "g5@qq.com")
+    map_ = client.get("/api/map", headers=uh).json()
+    java = next(sj for sj in map_ if sj["code"] == "java")
+    java_lv = java["chapters"][0]["levels"][0]
+    assert java_lv["unlocked"], "新科目首关应默认解锁（科目间互不影响）"
+    r = client.post(f"/api/levels/{java_lv['id']}/submit",
+                    json={"answers": [0]}, headers=uh)
+    assert r.json()["passed"]
+
+    # 清理：删题 → 删关 → 删章 → 删科目
+    assert client.delete(f"/api/admin/questions/{q['id']}", headers=h).status_code == 200
+    assert client.delete(f"/api/admin/levels/{lv['id']}", headers=h).status_code == 200
+    assert client.delete(f"/api/admin/chapters/{ch['id']}", headers=h).status_code == 200
+    assert client.delete(f"/api/admin/subjects/{s['id']}", headers=h).status_code == 200
+
+
+def test_admin_subject_crud_guards(client):
+    """科目 CRUD：普通用户禁止；code 唯一；有章节的科目不可删除。"""
+    uh = register_user(client, "g6@qq.com")
+    assert client.get("/api/admin/subjects", headers=uh).status_code == 403
+
+    h = admin_headers(client)
+    s = client.post("/api/admin/subjects",
+                    json={"name": "Java", "code": "java", "icon": "☕"}, headers=h)
+    assert s.status_code == 200
+    sid = s.json()["id"]
+
+    # code 重复被拒
+    dup = client.post("/api/admin/subjects",
+                      json={"name": "Java 2", "code": "java"}, headers=h)
+    assert dup.status_code == 400
+
+    # 更新
+    up = client.put(f"/api/admin/subjects/{sid}",
+                    json={"name": "Java 面试", "code": "java", "icon": "☕",
+                          "description": "d", "order": 1}, headers=h)
+    assert up.status_code == 200 and up.json()["name"] == "Java 面试"
+
+    # 有章节 → 不可删
+    ch = client.post("/api/admin/chapters",
+                     json={"subject_id": sid, "title": "章", "order": 0}, headers=h).json()
+    assert client.delete(f"/api/admin/subjects/{sid}", headers=h).status_code == 400
+    # 删除章节后可删科目
+    assert client.delete(f"/api/admin/chapters/{ch['id']}", headers=h).status_code == 200
+    assert client.delete(f"/api/admin/subjects/{sid}", headers=h).status_code == 200
 
 
 def test_submit_wrong_and_wrongbook(client, db):
@@ -80,11 +153,14 @@ def test_admin_crud_and_delete_with_progress(client, db):
     uh = register_user(client, "g4@qq.com")
     assert client.get("/api/admin/users", headers=uh).status_code == 403
 
-    # 建 章节→关卡→题目
+    sid = _seed_python_subject_id(client, h)
+    # 建 章节→关卡→题目（挂在种子科目下）
     ch = client.post("/api/admin/chapters",
-                     json={"title": "测试章", "description": "d", "order": 99}, headers=h)
+                     json={"subject_id": sid, "title": "测试章", "description": "d",
+                           "order": 99}, headers=h)
     assert ch.status_code == 200
     cid = ch.json()["id"]
+    assert ch.json()["subject_name"] == "Python 编程"
     lv = client.post("/api/admin/levels",
                      json={"chapter_id": cid, "title": "L", "order": 0}, headers=h)
     lid = lv.json()["id"]
@@ -95,7 +171,7 @@ def test_admin_crud_and_delete_with_progress(client, db):
     qid = q.json()["id"]
 
     # 制造该关卡的进度/错题（模拟玩家数据）
-    from app.models import Progress, WrongRecord, User, Level
+    from app.models import Progress, WrongRecord, User
     user = db.query(User).filter(User.email == "g4@qq.com").first()
     db.add(Progress(user_id=user.id, level_id=lid, attempts=1, cleared=1, stars=1,
                     best_accuracy=1.0))
