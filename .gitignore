@@ -1,0 +1,23 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# ---- 数据库 / 本地数据 ----
+*.db
+*.sqlite3
+.env
+.env.local
+
+# ---- Node ----
+node_modules/
+dist/
+
+# ---- IDE / 系统 ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
